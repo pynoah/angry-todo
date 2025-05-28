@@ -1,0 +1,134 @@
+import React, { useState, useEffect, useCallback } from 'react'
+import { playSound } from './utils/sounds'
+import { getRandomMessage } from './utils/messages'
+import './App.css'
+
+type Todo = { text: string; done: boolean }
+interface SavedList { name: string; todos: Todo[] }
+
+const App: React.FC = () => {
+  const [todos, setTodos] = useState<Todo[]>([])
+  const [newTodo, setNewTodo] = useState<string>('')
+  const [angerLevel, setAngerLevel] = useState<number>(0)
+  const [angryMessage, setAngryMessage] = useState<string>('')
+  const [savedLists, setSavedLists] = useState<SavedList[]>([])
+
+  useEffect(() => {
+    const stored = localStorage.getItem('savedLists')
+    if (stored) {
+      try { setSavedLists(JSON.parse(stored)) }
+      catch { localStorage.removeItem('savedLists') }
+    }
+  }, [])
+  useEffect(() => { localStorage.setItem('savedLists', JSON.stringify(savedLists)) }, [savedLists])
+
+  const showAngry = useCallback((msg: string) => {
+    setAngryMessage(msg)
+    setTimeout(() => setAngryMessage(''), 3000)
+  }, [])
+
+  const handleAdd = useCallback(() => {
+    if (!newTodo.trim()) return
+    setTodos(prev => [...prev, { text: newTodo, done: false }])
+    setNewTodo('')
+    setAngerLevel(prev => Math.min(prev + 10, 100))
+    showAngry(getRandomMessage())
+    playSound()
+  }, [newTodo, showAngry])
+
+  const handleDelete = useCallback((idx: number) => {
+    setTodos(prev => prev.filter((_, i) => i !== idx))
+    setAngerLevel(prev => Math.max(prev - 5, 0))
+    showAngry(getRandomMessage())
+    playSound()
+  }, [showAngry])
+
+  const handleToggle = useCallback((idx: number) => {
+    setTodos(prev => {
+      const newList = [...prev]
+      newList[idx].done = !newList[idx].done
+      return newList
+    })
+    setAngerLevel(prev => Math.min(prev + 5, 100))
+    showAngry(getRandomMessage())
+    playSound()
+  }, [showAngry])
+
+  const saveList = useCallback(() => {
+    const name = prompt('リスト名を入力:')
+    if (name) {
+      setSavedLists(prev => [...prev, { name, todos }])
+      showAngry(`リスト「${name}」を保存したわよ！`)
+    }
+  }, [todos, showAngry])
+
+  const loadList = useCallback((i: number) => {
+    setTodos(savedLists[i].todos)
+    setAngerLevel(0)
+    showAngry(`リスト「${savedLists[i].name}」を読み込んだわ！`)
+  }, [savedLists, showAngry])
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      <aside className="w-64 bg-white border-r p-4 flex flex-col">
+        <h2 className="text-lg font-semibold mb-4">Saved Lists</h2>
+        <ul className="flex-grow overflow-auto space-y-2">
+          {savedLists.map((list, idx) => (
+            <li key={idx} onClick={() => loadList(idx)} className="cursor-pointer px-3 py-1 rounded hover:bg-gray-100">
+              {list.name}
+            </li>
+          ))}
+        </ul>
+        <button onClick={saveList} className="mt-4 bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600">
+          Save List
+        </button>
+      </aside>
+
+      <main className="flex-grow p-8 flex flex-col items-center">
+        <h1 className="text-4xl font-bold mb-6 text-red-700">怒られる ToDo リスト</h1>
+        <img src="/character/angry-face.png" alt="怒ってるキャラ" className="w-24 h-24 mb-6" />
+
+        <div className="w-full max-w-2xl flex gap-3 mb-6">
+          <input
+            type="text"
+            value={newTodo}
+            onChange={e => setNewTodo(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            placeholder="やることを入力"
+            className="flex-grow border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
+          />
+          <button onClick={handleAdd} className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 transition">
+            追加
+          </button>
+        </div>
+
+        <div className="w-full max-w-2xl mb-4">
+          <div className="w-full h-4 bg-red-100 rounded overflow-hidden">
+            <div className="h-full bg-red-600 transition-all duration-500" style={{ width: `${angerLevel}%` }} />
+          </div>
+        </div>
+
+        {angryMessage && <div className="mb-4 text-center text-red-700 font-semibold">{angryMessage}</div>}
+
+        <ul className="w-full max-w-2xl space-y-3">
+          {todos.map((todo, i) => (
+            <li key={i} className="flex justify-between items-center bg-white text-gray-900 px-5 py-3 rounded shadow">
+              <span className={todo.done ? 'line-through text-gray-500' : ''}>{todo.text}</span>
+              <div className="flex gap-2">
+                <button onClick={() => handleToggle(i)} className="bg-red-400 hover:bg-red-500 text-white px-3 py-1 rounded">
+                  完了
+                </button>
+                <button onClick={() => handleDelete(i)} className="bg-red-300 hover:bg-red-400 text-white px-3 py-1 rounded">
+                  削除
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </main>
+    </div>
+  )
+}
+
+export default App
+
