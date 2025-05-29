@@ -1,0 +1,75 @@
+import React, { useEffect, useState } from 'react'
+
+interface Props {
+  onCheat: () => void
+  resetAngerLevel: () => void
+}
+
+const DevModeWatcher: React.FC<Props> = ({ onCheat, resetAngerLevel }) => {
+  const [devMode, setDevMode] = useState(false)
+  const [watcherMeter, setWatcherMeter] = useState(0)
+  const [showWatcher, setShowWatcher] = useState(false)
+
+  // 開発者モードのショートカットキー切り替え（Shift + D）
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.shiftKey && e.key.toLowerCase() === 'd') {
+        setDevMode((prev) => !prev)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  const handleCheat = () => {
+    resetAngerLevel()
+    const next = watcherMeter + 1
+    setWatcherMeter(next)
+
+    if (next >= 5) {
+      setShowWatcher(true)
+      setTimeout(() => {
+        setShowWatcher(false)
+        setWatcherMeter(0)
+        onCheat()
+      }, 3000)
+    }
+  }
+
+  return (
+    <>
+      {devMode && (
+        <div className="fixed bottom-4 right-4 bg-black text-white p-4 rounded shadow-lg z-50">
+          <p className="mb-2">開発者モード ON</p>
+          <button
+            onClick={handleCheat}
+            className="bg-red-600 px-4 py-2 rounded hover:bg-red-700"
+          >
+            怒りゲージリセット
+          </button>
+        </div>
+      )}
+
+      {showWatcher && (
+        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+          <div
+            className="relative"
+            style={{
+              width: '1024px',   // ← 画像の表示サイズ（幅）を変更したい場合はここを編集
+              height: '1024px',  // ← 画像の表示サイズ（高さ）を変更したい場合はここを編集
+            }}
+          >
+            <img
+              src="/character/watchingu.png"
+              alt="監視者の目"
+              className="absolute top-0 left-0 w-full h-full object-contain"
+            />
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+export default DevModeWatcher
