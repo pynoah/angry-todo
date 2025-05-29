@@ -1,0 +1,63 @@
+// 怒られるToDoリストにおける二重開発者モード機能（React + Vite 用）
+// 必要に応じて、既存のAppコンポーネントに組み込んでください。
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+export default function DevModeWatcher() {
+  const [devMode, setDevMode] = useState(false); // 表モード
+  const [watcherMeter, setWatcherMeter] = useState(0); // 裏ゲージ
+  const [showWatcher, setShowWatcher] = useState(false); // 裏イベント表示
+
+  // キーボードショートカットで表の開発者モードをON/OFF
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === "D") {
+        setDevMode(prev => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // 開発者モードで怒りゲージをズルしてリセットする処理
+  const handleDevReset = () => {
+    // 表向きは優しい感じ
+    alert("今回は特別に見逃してあげるわ…");
+    // 裏では監視者ゲージ蓄積
+    setWatcherMeter(prev => prev + 1);
+  };
+
+  // 監視者モードに突入する条件
+  useEffect(() => {
+    if (watcherMeter >= 5) {
+      setShowWatcher(true);
+    }
+  }, [watcherMeter]);
+
+  return (
+    <div className="p-4 border rounded-xl mt-4">
+      <h2 className="text-xl font-bold mb-2">開発者モード</h2>
+      {devMode ? (
+        <div className="space-y-2">
+          <p className="text-sm text-gray-500">開発者モードが有効です。</p>
+          <Button onClick={handleDevReset} className="bg-purple-500 hover:bg-purple-600">
+            怒りゲージをリセット（ズル）
+          </Button>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-400">（Ctrl + Shift + Dで開発者モードON）</p>
+      )}
+
+      {/* 監視者からの警告 */}
+      <Dialog open={showWatcher}>
+        <DialogContent className="bg-black text-red-500 text-center border-2 border-red-600">
+          <h2 className="text-2xl font-bold mb-4">── 監視者が目を覚ました ──</h2>
+          <p>貴様…ズルを繰り返していたな。</p>
+          <p>その行為こそ、真に怒られるべきことだ。</p>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
